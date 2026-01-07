@@ -1,0 +1,49 @@
+package services
+
+import (
+	"backend/models"
+	
+	"backend/repositories"
+	"errors"
+)
+
+// FormService defines the business logic interface
+type FormService interface {
+	CreateForm(name string, elements string) (*models.Form, error)
+	GetAllForms() ([]models.Form, error)
+	GetForm(id int) (*models.Form, error)
+}
+
+type formService struct {
+	repo repositories.FormRepository
+}
+
+func NewFormService(repo repositories.FormRepository) FormService {
+	return &formService{repo: repo}
+}
+
+func (s *formService) CreateForm(name string, elements string) (*models.Form, error) {
+	// Business Logic: Validate input
+	if name == "" || elements == "" {
+		return nil, errors.New("name and elements are required")
+	}
+
+	newForm := &models.Form{
+		Name:     name,
+		Elements: elements,
+	}
+
+	if err := s.repo.Create(newForm); err != nil {
+		return nil, err
+	}
+
+	return newForm, nil
+}
+
+func (s *formService) GetAllForms() ([]models.Form, error) {
+	return s.repo.FindAll()
+}
+
+func (s *formService) GetForm(id int) (*models.Form, error) {
+	return s.repo.FindByID(id)
+}
