@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"backend/services" // Ensure this exists
+	"backend/services"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -132,9 +132,25 @@ func (h *FormHandler) ServeFormHTML(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, data)
 }
 
-// SubmitForm
+// SubmitForm saves the user's answers to the database
 func (h *FormHandler) SubmitForm(w http.ResponseWriter, r *http.Request) {
-	// Placeholder until Submission Service is added
+	type SubmissionRequest struct {
+		FormSchemaID uint   `json:"form_schema_id"`
+		Data         string `json:"data"` // JSON string of answers
+	}
+
+	var req SubmissionRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Call the service to save the submission
+	if err := h.service.SubmitForm(req.FormSchemaID, req.Data); err != nil {
+		http.Error(w, "Failed to save submission: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Submission received (Logic Pending)"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Submission saved successfully"})
 }

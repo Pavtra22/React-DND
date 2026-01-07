@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"backend/models"
+
 	"gorm.io/gorm"
 )
 
@@ -10,6 +11,7 @@ type FormRepository interface {
 	Create(form *models.Form) error
 	FindAll() ([]models.Form, error)
 	FindByID(id int) (*models.Form, error)
+	CreateSubmission(submission *models.FormSubmission) error // New method
 }
 
 // formRepository is the concrete implementation
@@ -40,4 +42,9 @@ func (r *formRepository) FindByID(id int) (*models.Form, error) {
 		return nil, err
 	}
 	return &form, nil
+}
+
+// CreateSubmission saves a new form submission to the database
+func (r *formRepository) CreateSubmission(submission *models.FormSubmission) error {
+	return r.db.Create(submission).Error
 }

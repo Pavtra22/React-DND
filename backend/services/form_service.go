@@ -2,7 +2,7 @@ package services
 
 import (
 	"backend/models"
-	
+
 	"backend/repositories"
 	"errors"
 )
@@ -12,6 +12,7 @@ type FormService interface {
 	CreateForm(name string, elements string) (*models.Form, error)
 	GetAllForms() ([]models.Form, error)
 	GetForm(id int) (*models.Form, error)
+	SubmitForm(formID uint, data string) error // New method
 }
 
 type formService struct {
@@ -46,4 +47,18 @@ func (s *formService) GetAllForms() ([]models.Form, error) {
 
 func (s *formService) GetForm(id int) (*models.Form, error) {
 	return s.repo.FindByID(id)
+}
+
+// SubmitForm handles the business logic for submitting a form
+func (s *formService) SubmitForm(formID uint, data string) error {
+	if data == "" {
+		return errors.New("submission data cannot be empty")
+	}
+
+	submission := &models.FormSubmission{
+		FormSchemaID: formID,
+		Data:         data,
+	}
+
+	return s.repo.CreateSubmission(submission)
 }
