@@ -45,25 +45,27 @@
                 {{ if .Required }}<span class="required">*</span>{{ end }}
             </label>
 
+            <!-- CHANGED: 'name' attribute now uses .Label instead of .ID -->
             {{ if eq .Type "text" }}
-                <input type="text" name="{{ .ID }}" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}>
+                <input type="text" name="{{ .Label }}" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}>
             {{ else if eq .Type "email" }}
-                <input type="email" name="{{ .ID }}" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}>
+                <input type="email" name="{{ .Label }}" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}>
             {{ else if eq .Type "phone" }}
-                <input type="tel" name="{{ .ID }}" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}>
+                <input type="tel" name="{{ .Label }}" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}>
             {{ else if eq .Type "date" }}
-                <input type="date" name="{{ .ID }}" {{ if .Required }}required{{ end }}>
+                <input type="date" name="{{ .Label }}" {{ if .Required }}required{{ end }}>
             {{ else if eq .Type "textarea" }}
-                <textarea name="{{ .ID }}" rows="4" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}></textarea>
+                <textarea name="{{ .Label }}" rows="4" placeholder="{{ .Placeholder }}" {{ if .Required }}required{{ end }}></textarea>
             {{ else if eq .Type "select" }}
-                <select name="{{ .ID }}" {{ if .Required }}required{{ end }}>
+                <select name="{{ .Label }}" {{ if .Required }}required{{ end }}>
                     <option value="" disabled selected>Select an option</option>
                     <option value="Option 1">Option 1</option>
                     <option value="Option 2">Option 2</option>
                 </select>
             {{ else if eq .Type "stars" }}
                 <div class="stars" id="stars-{{ .ID }}">
-                    <input type="hidden" name="{{ .ID }}" id="input-{{ .ID }}" {{ if .Required }}required{{ end }}>
+                    <!-- Use Label for key, but ID for JS targeting -->
+                    <input type="hidden" name="{{ .Label }}" id="input-{{ .ID }}" {{ if .Required }}required{{ end }}>
                     <button type="button" class="star" onclick="setRating('{{ .ID }}', 1)">★</button>
                     <button type="button" class="star" onclick="setRating('{{ .ID }}', 2)">★</button>
                     <button type="button" class="star" onclick="setRating('{{ .ID }}', 3)">★</button>
@@ -72,7 +74,8 @@
                 </div>
             {{ else if eq .Type "video" }}
                 <div class="video-container" id="video-wrapper-{{ .ID }}">
-                    <input type="hidden" name="{{ .ID }}" id="input-{{ .ID }}" {{ if .Required }}required{{ end }}>
+                    <!-- Use Label for key, but ID for JS targeting -->
+                    <input type="hidden" name="{{ .Label }}" id="input-{{ .ID }}" {{ if .Required }}required{{ end }}>
                     <video id="preview-{{ .ID }}" autoplay muted playsinline></video>
                     <video id="playback-{{ .ID }}" controls></video>
                     <div style="margin-top: 10px;">
@@ -113,14 +116,22 @@
             document.getElementById('playback-' + id).style.display = 'none';
             preview.srcObject = stream;
 
-            const mediaRecorder = new MediaRecorder(stream);
+            // Improved Codec Support for Safari/iOS vs Chrome
+            let mimeType = 'video/webm';
+            if (MediaRecorder.isTypeSupported('video/mp4')) {
+                mimeType = 'video/mp4';
+            } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                mimeType = 'video/webm;codecs=vp9';
+            }
+
+            const mediaRecorder = new MediaRecorder(stream, { mimeType });
             recorders[id] = mediaRecorder;
             chunks[id] = [];
 
             mediaRecorder.ondataavailable = (e) => chunks[id].push(e.data);
             
             mediaRecorder.onstop = () => {
-                const blob = new Blob(chunks[id], { type: 'video/webm' });
+                const blob = new Blob(chunks[id], { type: mimeType });
                 const reader = new FileReader();
                 reader.readAsDataURL(blob);
                 reader.onloadend = () => {

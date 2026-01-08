@@ -28,8 +28,9 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// CORS Configuration - Using wildcard '*' for development debugging
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
@@ -42,10 +43,11 @@ func main() {
 		r.Post("/forms", handler.CreateForm)
 		r.Get("/forms", handler.GetForms)
 		r.Get("/forms/{id}", handler.GetForm)
+		r.Delete("/forms/{id}", handler.DeleteForm)
+
 		r.Post("/submit", handler.SubmitForm)
 		r.Get("/forms/{id}/submissions", handler.GetSubmissions)
 		r.Delete("/submissions/{id}", handler.DeleteSubmission)
-		
 	})
 
 	r.Get("/public/forms/{id}", handler.ServeFormHTML)

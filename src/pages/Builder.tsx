@@ -1,81 +1,116 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { DragDropContext, type DropResult } from '@hello-pangea/dnd';
 import { v4 as uuidv4 } from 'uuid';
 import { useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
 import axios from 'axios';
-import { Eye, EyeOff, Save, Home } from 'lucide-react'; // Import icons
+import { Eye, EyeOff, Save, Home, Loader2 } from 'lucide-react';
 
 import { Sidebar } from '../components/builder/Sidebar';
 import { Canvas } from '../components/builder/Canvas';
 import { PropertiesPanel } from '../components/builder/PropertiesPanel';
+import { PreviewPanel } from '../components/builder/PreviewPanel';
+import { Resizer } from '../components/builder/Resizer';
 import { TOOLS } from '../components/builder/tools';
 import { useBuilderStore } from '../store/useBuilderStore';
 import type { ElementType } from '../types';
 import { generateFormHTML } from '../utils/formHtmlGenerator';
-
-// --- Resizer Component ---
-const Resizer = ({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) => (
-  <div
-    className="w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors z-20 flex-shrink-0"
-    onMouseDown={onMouseDown}
-  />
-);
 
 export function Builder() {
   const { addElement, reorderElements, elements } = useBuilderStore();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formName, setFormName] = useState("");
   
-  // --- Layout State ---
+  // Layout State
   const [showPreview, setShowPreview] = useState(false);
-  // Initial widths (Sidebar: 250px, Props: 300px, Preview: 400px, Canvas: Flex)
-  const [widths, setWidths] = useState({ sidebar: 250, props: 300, preview: 400 });
+  const [isResizing, setIsResizing] = useState(false);
   
-  const sidebarRef = useRef<HTMLDivElement>(null);
-  const propsRef = useRef<HTMLDivElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
+  // Panel Widths
+  const [widths, setWidths] = useState({ 
+    sidebar: 250, 
+    props: 300, 
+    preview: 400 
+  });
+  
   const resizingRef = useRef<string | null>(null);
-
   const navigate = useNavigate();
 
   // --- Resizing Logic ---
-  const startResizing = (panel: string) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    resizingRef.current = panel;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  };
-
-  const handleMouseMove = (e: MouseEvent) => {
+  
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!resizingRef.current) return;
 
-    if (resizingRef.current === 'sidebar') {
+    const panel = resizingRef.current;
+    const screenWidth = window.innerWidth;
+    const minCanvasWidth = 300; // Hard constraint: Canvas never goes below this
+
+    if (panel === 'sidebar') {
       const newWidth = e.clientX;
-      if (newWidth > 150 && newWidth < 500) setWidths(p => ({ ...p, sidebar: newWidth }));
+      // Calculate if this new width leaves enough room for canvas + props + preview
+      const rightSideWidth = widths.props + (showPreview ? widths.preview : 0);
+      const remainingForCanvas = screenWidth - newWidth - rightSideWidth;
+
+      if (newWidth > 180 && newWidth < 500 && remainingForCanvas > minCanvasWidth) {
+        setWidths(prev => ({ ...prev, sidebar: newWidth }));
+      }
     } 
-    else if (resizingRef.current === 'props') {
-      // Calculate from right side (ish) - simplified to just adjust based on movement
-      // Since props panel is in the middle-ish, let's look at its reference
-      if (propsRef.current) {
-         // This logic depends on where the resizer is.
-         // Let's assume standard behavior: Resizer is to the LEFT of the panel usually,
-         // but here we have Sidebar | Canvas | Props | Preview
-         // So Props resizer is between Canvas and Props.
-         const newWidth = document.body.clientWidth - e.clientX - (showPreview ? widths.preview : 0);
-         if (newWidth > 200 && newWidth < 600) setWidths(p => ({ ...p, props: newWidth }));
+    else if (panel === 'props') {
+      // Resizing Properties Panel (Handle is on its LEFT)
+      // Logic: Props Width = (Screen Right Edge) - (Mouse X) - (Preview Width)
+      const previewWidth = showPreview ? widths.preview : 0;
+      const newWidth = screenWidth - e.clientX - previewWidth;
+      
+      // Calculate if this leaves enough room for Canvas (Mouse X - Sidebar Width)
+      const canvasWidth = e.clientX - widths.sidebar;
+
+      if (newWidth > 200 && newWidth < 600 && canvasWidth > minCanvasWidth) {
+        setWidths(prev => ({ ...prev, props: newWidth }));
       }
     }
-    else if (resizingRef.current === 'preview') {
-      const newWidth = document.body.clientWidth - e.clientX;
-      if (newWidth > 300 && newWidth < 800) setWidths(p => ({ ...p, preview: newWidth }));
-    }
-  };
+    else if (panel === 'preview') {
+      // Resizing Preview Panel (Handle is on its LEFT)
+      // Logic: Preview Width = (Screen Width) - (Mouse X)
+      const newWidth = screenWidth - e.clientX;
+      
+      // Calculate if this leaves enough room for Canvas
+      // Canvas = MouseX - Sidebar - Props
+      const canvasWidth = e.clientX - widths.sidebar - widths.props;
 
-  const handleMouseUp = () => {
+      if (newWidth > 300 && newWidth < 900 && canvasWidth > minCanvasWidth) {
+        setWidths(prev => ({ ...prev, preview: newWidth }));
+      }
+    }
+  }, [showPreview, widths.sidebar, widths.props, widths.preview]); 
+
+  const handleMouseUp = useCallback(() => {
     resizingRef.current = null;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
+    setIsResizing(false);
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto'; // Re-enable text selection
+  }, []);
+
+  // Attach global listeners only when resizing
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
+  const startResizing = (panel: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation(); 
+    resizingRef.current = panel;
+    setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none'; // Prevent highlighting text while dragging
   };
 
   // --- Data Logic ---
@@ -129,7 +164,7 @@ export function Builder() {
              <input 
                 type="text" 
                 placeholder="Form Name" 
-                className="border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none w-64"
                 value={formName}
                 onChange={e => setFormName(e.target.value)}
              />
@@ -152,33 +187,32 @@ export function Builder() {
             <button 
                 onClick={() => setIsModalOpen(true)}
                 disabled={elements.length === 0 || saveMutation.isPending}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
-              <Save size={16} />
+              {saveMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {saveMutation.isPending ? "Saving..." : "Save Form"}
             </button>
           </div>
         </header>
         
         {/* Main Content Area */}
-        <main className="flex flex-1 overflow-hidden relative">
+        <main className={`flex flex-1 overflow-hidden relative ${isResizing ? 'pointer-events-none cursor-col-resize' : ''}`}>
           
           {/* 1. Sidebar */}
-          <div ref={sidebarRef} style={{ width: widths.sidebar }} className="flex flex-col border-r bg-white h-full overflow-hidden shrink-0">
+          <div style={{ width: widths.sidebar }} className="flex flex-col border-r bg-white h-full overflow-hidden shrink-0">
              <Sidebar />
           </div>
           
           <Resizer onMouseDown={startResizing('sidebar')} />
 
           {/* 2. Canvas (Takes remaining space) */}
-          <div className="flex-1 bg-gray-100 h-full overflow-hidden min-w-[300px] flex flex-col">
+          <div className="flex-1 bg-gray-100 h-full overflow-hidden min-w-[300px] flex flex-col relative">
              <Canvas />
           </div>
 
-          <Resizer onMouseDown={startResizing('props')} />
-
           {/* 3. Properties Panel */}
-          <div ref={propsRef} style={{ width: widths.props }} className="flex flex-col border-l bg-white h-full overflow-hidden shrink-0 z-10">
+          <Resizer onMouseDown={startResizing('props')} />
+          <div style={{ width: widths.props }} className="flex flex-col border-l bg-white h-full overflow-hidden shrink-0 z-10">
             <PropertiesPanel />
           </div>
 
@@ -186,26 +220,17 @@ export function Builder() {
           {showPreview && (
             <>
                 <Resizer onMouseDown={startResizing('preview')} />
-                <div ref={previewRef} style={{ width: widths.preview }} className="flex flex-col border-l bg-white h-full overflow-hidden shrink-0 shadow-xl z-20">
-                    <div className="p-3 border-b bg-gray-50 flex justify-between items-center">
-                        <h3 className="font-semibold text-gray-700 text-sm">Live Preview</h3>
-                        <span className="text-xs text-gray-400">Vanilla HTML/JS</span>
-                    </div>
-                    <div className="flex-1 overflow-hidden bg-white">
-                        <iframe 
-                            srcDoc={previewSrc} 
-                            title="Form Preview" 
-                            className="w-full h-full border-0"
-                            sandbox="allow-scripts"
-                        />
-                    </div>
-                </div>
+                <PreviewPanel 
+                    width={widths.preview} 
+                    previewSrc={previewSrc} 
+                    onClose={() => setShowPreview(false)} 
+                />
             </>
           )}
 
         </main>
 
-        {/* Modal for Final Save Confirmation (Optional, kept from original) */}
+        {/* Modal for Final Save Confirmation */}
         {isModalOpen && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
                 <div className="bg-white p-6 rounded-lg shadow-xl w-96">

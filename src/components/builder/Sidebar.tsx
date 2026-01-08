@@ -2,7 +2,7 @@ import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { TOOLS } from './tools';
 export function Sidebar() {
   return (
-    <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-full">
+    <div className="bg-white border-r border-gray-200 flex flex-col h-full">
       <div className="p-4 border-b bg-gray-50">
         <h2 className="font-bold text-gray-700">Components</h2>
         <p className="text-xs text-gray-500">Drag to canvas</p>

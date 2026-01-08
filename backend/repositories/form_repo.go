@@ -11,9 +11,11 @@ type FormRepository interface {
 	Create(form *models.Form) error
 	FindAll() ([]models.Form, error)
 	FindByID(id int) (*models.Form, error)
-	CreateSubmission(submission *models.FormSubmission) error // New method
-	GetSubmissions(formID int) ([]models.FormSubmission, error)
+	CreateSubmission(submission *models.FormSubmission) error
+	FindSubmissionsByFormID(formID int) ([]models.FormSubmission, error)
 	DeleteSubmission(id int) error
+	// NEW: Delete Form
+	DeleteForm(id int) error
 }
 
 // formRepository is the concrete implementation
@@ -32,7 +34,6 @@ func (r *formRepository) Create(form *models.Form) error {
 
 func (r *formRepository) FindAll() ([]models.Form, error) {
 	var forms []models.Form
-	// Sort by creation date (newest first) to match frontend expectation
 	err := r.db.Order("created_at desc").Find(&forms).Error
 	return forms, err
 }
@@ -46,17 +47,23 @@ func (r *formRepository) FindByID(id int) (*models.Form, error) {
 	return &form, nil
 }
 
-// CreateSubmission saves a new form submission to the database
 func (r *formRepository) CreateSubmission(submission *models.FormSubmission) error {
 	return r.db.Create(submission).Error
 }
-// Implement method
-func (r *formRepository) GetSubmissions(formID int) ([]models.FormSubmission, error) {
-    var submissions []models.FormSubmission
-    // Preload (optional) or just filter
-    err := r.db.Where("form_schema_id = ?", formID).Order("created_at desc").Find(&submissions).Error
-    return submissions, err
+
+func (r *formRepository) FindSubmissionsByFormID(formID int) ([]models.FormSubmission, error) {
+	var submissions []models.FormSubmission
+	err := r.db.Where("form_schema_id = ?", formID).Order("created_at desc").Find(&submissions).Error
+	return submissions, err
 }
+
 func (r *formRepository) DeleteSubmission(id int) error {
 	return r.db.Delete(&models.FormSubmission{}, id).Error
+}
+
+// NEW Implementation
+func (r *formRepository) DeleteForm(id int) error {
+	// Optional: Delete associated submissions first or rely on constraints
+	// For GORM with constraints, we might just delete the form.
+	return r.db.Delete(&models.Form{}, id).Error
 }
