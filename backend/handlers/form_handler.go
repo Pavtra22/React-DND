@@ -131,7 +131,24 @@ func (h *FormHandler) ServeFormHTML(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	tmpl.Execute(w, data)
 }
+// GET /api/forms/{id}/submissions
+func (h *FormHandler) GetSubmissions(w http.ResponseWriter, r *http.Request) {
+    idStr := chi.URLParam(r, "id")
+    id, err := strconv.Atoi(idStr)
+    if err != nil {
+        http.Error(w, "Invalid ID", http.StatusBadRequest)
+        return
+    }
 
+    submissions, err := h.service.GetSubmissions(id)
+    if err != nil {
+        http.Error(w, "Failed to fetch submissions", http.StatusInternalServerError)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(submissions)
+}
 // SubmitForm saves the user's answers to the database
 func (h *FormHandler) SubmitForm(w http.ResponseWriter, r *http.Request) {
 	type SubmissionRequest struct {
@@ -153,4 +170,21 @@ func (h *FormHandler) SubmitForm(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Submission saved successfully"})
+}
+// DELETE /api/submissions/{id}
+func (h *FormHandler) DeleteSubmission(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.DeleteSubmission(id); err != nil {
+		http.Error(w, "Failed to delete submission", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Submission deleted"})
 }

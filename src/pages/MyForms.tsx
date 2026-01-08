@@ -1,7 +1,7 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { FileText, Plus, Loader2, ExternalLink, Copy, Check } from 'lucide-react';
+import { FileText, Plus, Loader2, ExternalLink, Copy, Check, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 
 // Define the shape of data coming from Go API
@@ -14,6 +14,7 @@ interface ApiForm {
 
 export function MyForms() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   const { data: forms, isLoading, isError } = useQuery({
     queryKey: ['forms'],
@@ -55,7 +56,7 @@ export function MyForms() {
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {forms.map((form) => (
-                <div key={form.id} className="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md transition-all">
+                <div key={form.id} className="bg-white p-6 rounded-xl shadow-sm border hover:shadow-md transition-all flex flex-col">
                     <div className="flex items-start justify-between mb-4">
                         <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                             <FileText size={24} />
@@ -65,7 +66,7 @@ export function MyForms() {
                     <h3 className="font-bold text-lg text-gray-800 mb-2">{form.name}</h3>
                     
                     {/* PUBLIC LINK SECTION */}
-                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mt-4">
+                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 mt-4 mb-3">
                         <p className="text-xs text-gray-500 mb-1 font-semibold uppercase">Public Link</p>
                         <div className="flex items-center gap-2">
                             <input 
@@ -90,6 +91,15 @@ export function MyForms() {
                             Open Form <ExternalLink size={14} />
                         </a>
                     </div>
+
+                    {/* NEW: Responses Button */}
+                    <button 
+                        onClick={() => navigate({ to: '/forms/$formId/responses', params: { formId: form.id.toString() } })}
+                        className="mt-auto w-full flex items-center justify-center gap-2 bg-gray-800 text-white py-2 rounded-lg hover:bg-gray-900 transition font-medium text-sm"
+                    >
+                        <MessageSquare size={16} />
+                        View Responses
+                    </button>
                 </div>
                 ))}
             </div>

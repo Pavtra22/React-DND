@@ -1,7 +1,7 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router';
 import { Builder } from './pages/Builder';
 import { MyForms } from './pages/MyForms';
-// REMOVED: import { ViewForm } from './pages/ViewForm'; 
+import { FormResponses } from './pages/FormResponses'; // NEW IMPORT
 
 export const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -21,11 +21,17 @@ export const myFormsRoute = createRoute({
   component: MyForms,
 });
 
-// REMOVED: viewFormRoute
+// 3. Form Responses (NEW)
+export const formResponsesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/forms/$formId/responses',
+  component: FormResponses,
+});
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
   myFormsRoute,
+  formResponsesRoute, // Add to route tree
 ]);
 
 export const router = createRouter({ routeTree });

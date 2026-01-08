@@ -12,6 +12,8 @@ type FormRepository interface {
 	FindAll() ([]models.Form, error)
 	FindByID(id int) (*models.Form, error)
 	CreateSubmission(submission *models.FormSubmission) error // New method
+	GetSubmissions(formID int) ([]models.FormSubmission, error)
+	DeleteSubmission(id int) error
 }
 
 // formRepository is the concrete implementation
@@ -47,4 +49,14 @@ func (r *formRepository) FindByID(id int) (*models.Form, error) {
 // CreateSubmission saves a new form submission to the database
 func (r *formRepository) CreateSubmission(submission *models.FormSubmission) error {
 	return r.db.Create(submission).Error
+}
+// Implement method
+func (r *formRepository) GetSubmissions(formID int) ([]models.FormSubmission, error) {
+    var submissions []models.FormSubmission
+    // Preload (optional) or just filter
+    err := r.db.Where("form_schema_id = ?", formID).Order("created_at desc").Find(&submissions).Error
+    return submissions, err
+}
+func (r *formRepository) DeleteSubmission(id int) error {
+	return r.db.Delete(&models.FormSubmission{}, id).Error
 }

@@ -43,6 +43,9 @@ func main() {
 		r.Get("/forms", handler.GetForms)
 		r.Get("/forms/{id}", handler.GetForm)
 		r.Post("/submit", handler.SubmitForm)
+		r.Get("/forms/{id}/submissions", handler.GetSubmissions)
+		r.Delete("/submissions/{id}", handler.DeleteSubmission)
+		
 	})
 
 	r.Get("/public/forms/{id}", handler.ServeFormHTML)

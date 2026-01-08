@@ -13,6 +13,8 @@ type FormService interface {
 	GetAllForms() ([]models.Form, error)
 	GetForm(id int) (*models.Form, error)
 	SubmitForm(formID uint, data string) error // New method
+	GetSubmissions(formID int) ([]models.FormSubmission, error)
+	DeleteSubmission(id int) error
 }
 
 type formService struct {
@@ -61,4 +63,11 @@ func (s *formService) SubmitForm(formID uint, data string) error {
 	}
 
 	return s.repo.CreateSubmission(submission)
+}
+// Implement method
+func (s *formService) GetSubmissions(formID int) ([]models.FormSubmission, error) {
+    return s.repo.GetSubmissions(formID)
+}
+func (s *formService) DeleteSubmission(id int) error {
+	return s.repo.DeleteSubmission(id)
 }
