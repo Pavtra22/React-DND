@@ -2,9 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useReactMediaRecorder } from "react-media-recorder";
 import { Video, Square, RefreshCw, Clock } from "lucide-react";
 
-const MAX_RECORDING_TIME = 60; // Seconds
+const MAX_RECORDING_TIME = 60;
 
-// Helper Component to render the live stream
 const LivePreview = ({ stream }: { stream: MediaStream | null }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -19,7 +18,6 @@ const LivePreview = ({ stream }: { stream: MediaStream | null }) => {
   }
 
   return <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover transform scale-x-[-1]" />; 
-  // scale-x-[-1] creates a "mirror" effect which is more natural for self-recording
 };
 
 export function VideoRecorder({ onSave }: { onSave?: (blob: Blob) => void }) {

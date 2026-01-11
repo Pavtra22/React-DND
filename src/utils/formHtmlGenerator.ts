@@ -61,10 +61,11 @@ export function generateFormHTML(formName: string, elements: FormElement[]): str
     switch (el.type) {
       case 'text':
       case 'email':
-      case 'phone':
+      case 'phone': {
         const type = el.type === 'phone' ? 'tel' : el.type;
         inputHtml = `<input type="${type}" name="${el.id}" placeholder="${el.placeholder || ''}" ${requiredAttr}>`;
         break;
+      }
       case 'date':
         inputHtml = `<input type="date" name="${el.id}" ${requiredAttr}>`;
         break;
