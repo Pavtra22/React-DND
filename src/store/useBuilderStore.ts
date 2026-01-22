@@ -12,7 +12,7 @@ interface BuilderStore {
   reorderElements: (startIndex: number, endIndex: number) => void;
   setSelectedElement: (element: FormElement | null) => void;
   updateElement: (id: string, updates: Partial<FormElement>) => void;
-  setElements: (elements: FormElement[]) => void; // Useful for loading existing forms
+  setElements: (elements: FormElement[]) => void; 
 }
 
 export const useBuilderStore = create<BuilderStore>((set) => ({

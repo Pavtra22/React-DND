@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"backend/database"
 	"backend/handlers"
@@ -28,7 +30,7 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// CORS Configuration - Using wildcard '*' for development debugging
+	// CORS Configuration
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -37,6 +39,13 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
+
+	// --- FILE SERVER FOR VIDEO UPLOADS ---
+	// This makes the 'uploads' folder publicly accessible
+	workDir, _ := os.Getwd()
+	filesDir := http.Dir(filepath.Join(workDir, "uploads"))
+	r.Handle("/uploads/*", http.StripPrefix("/uploads", http.FileServer(filesDir)))
+	// -------------------------------------
 
 	// 4. Routes
 	r.Route("/api", func(r chi.Router) {
