@@ -21,6 +21,7 @@ export function PreviewPanel({ width, previewSrc, onClose, formId }: PreviewPane
                 </span>
             </div>
             <div className="flex items-center gap-2">
+                
                 {formId && (
                     <a 
                         href={`http://localhost:8080/public/forms/${formId}`} 
@@ -32,6 +33,7 @@ export function PreviewPanel({ width, previewSrc, onClose, formId }: PreviewPane
                         <ExternalLink size={16} />
                     </a>
                 )}
+
                 <button 
                   onClick={onClose} 
                   className="text-gray-500 hover:text-red-500 transition-colors p-1 rounded hover:bg-gray-100"
